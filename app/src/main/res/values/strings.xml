@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Distance Tracking</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="settings_label">Settings Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="loc_entry_date_label"><b><h1>Time taken</h1></b>: %1$s</string>
+    <string name="loc_distance_label"><b><h1>Distance</h1></b>: %1$s</string>
+</resources>
