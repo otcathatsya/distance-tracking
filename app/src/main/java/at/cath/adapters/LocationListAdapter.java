@@ -1,39 +1,41 @@
 package at.cath.adapters;
 
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.snackbar.Snackbar;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import at.cath.R;
 import at.cath.data.LocationEntry;
 import at.cath.data.SelectableEntry;
 import at.cath.databinding.LocationEntryBinding;
-import at.cath.listeners.LocationDistanceHandler;
+import at.cath.listeners.MultiSelectionHandler;
 
 public class LocationListAdapter extends RecyclerView.Adapter<LocationListAdapter.ViewHolder> {
 
     private final List<LocationEntry> entries;
-    private final LocationDistanceHandler displayCalcHandler;
+    private final MultiSelectionHandler<LocationEntry> displayCalcHandler;
     private final Context context;
 
-    public LocationListAdapter(Context context, BiConsumer<LocationEntry, LocationEntry> onSelect, Runnable onDeselect) {
+    public LocationListAdapter(Context context, MultiSelectionHandler.OnSelectRequiredAmountListener<LocationEntry> onSelect, MultiSelectionHandler.OnDeselect onDeselect) {
         entries = new ArrayList<>();
         this.context = context;
-        this.displayCalcHandler = new LocationDistanceHandler(onSelect, onDeselect);
+        this.displayCalcHandler = new MultiSelectionHandler<>(onSelect, onDeselect, 2);
     }
 
     @NonNull
@@ -43,6 +45,7 @@ public class LocationListAdapter extends RecyclerView.Adapter<LocationListAdapte
         return new LocationListAdapter.ViewHolder(context, view);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         LocationEntry entry = entries.get(position);
@@ -52,16 +55,37 @@ public class LocationListAdapter extends RecyclerView.Adapter<LocationListAdapte
         View itemView = holder.itemView;
 
         itemView.setOnLongClickListener(view -> {
-            Snackbar.make(view, entry.toString(), Snackbar.LENGTH_SHORT).show();
+            createEditPrompt(entry, position).show();
             return true;
         });
 
         itemView.setOnClickListener(view -> {
+            itemView.setElevation(20);
             displayCalcHandler.onToggleSelect(entry, getSelectedEntries());
             notifyDataSetChanged();
         });
 
-        holder.bind(entry);
+        holder.bind(entry, position);
+    }
+
+    private AlertDialog.Builder createEditPrompt(LocationEntry entry, int position) {
+        AlertDialog.Builder alert = new AlertDialog.Builder(context, R.style.Theme_Material3_Dark_DialogWhenLarge);
+
+        final EditText editName = new EditText(context);
+        alert.setMessage("Name your entry!");
+        alert.setTitle("Edit entry #" + (position + 1));
+
+        alert.setView(editName);
+
+        alert.setPositiveButton("Confirm", (dialog, whichButton) -> {
+            entry.setName(editName.getText().toString());
+            notifyItemChanged(position);
+            dialog.cancel();
+        });
+
+        alert.setNegativeButton("Cancel", (dialog, whichButton) -> dialog.cancel());
+
+        return alert;
     }
 
     public List<LocationEntry> getSelectedEntries() {
@@ -94,9 +118,10 @@ public class LocationListAdapter extends RecyclerView.Adapter<LocationListAdapte
         private final TextView labelText;
         private final TextView infoText;
         private final Context context;
+        private final SharedPreferences preferences;
 
         private final int highlightCol;
-        private final int resetCol;
+        private final int defaultCol;
 
         public ViewHolder(Context context, View view) {
             super(view);
@@ -107,14 +132,25 @@ public class LocationListAdapter extends RecyclerView.Adapter<LocationListAdapte
             this.infoText = binding.infoText;
 
             this.highlightCol = ContextCompat.getColor(context, R.color.highlight);
-            this.resetCol = ContextCompat.getColor(context, R.color.white);
+            this.defaultCol = ContextCompat.getColor(context, R.color.app_bar);
+
+            this.preferences = PreferenceManager.getDefaultSharedPreferences(context);
         }
 
-        public void bind(LocationEntry entry) {
-            labelText.setText(Html.fromHtml(context.getString(R.string.loc_entry_date_label, entry.getDateTakenFormatted()), Html.FROM_HTML_MODE_LEGACY));
-            infoText.setText(entry.toString());
+        public void bind(LocationEntry entry, int position) {
+            System.out.println("yo it's "+entry);
+            if (preferences.getBoolean("use_names", true)) {
+                if (entry.getName() != null) {
+                    labelText.setText(entry.getName());
+                } else {
+                    labelText.setText(Html.fromHtml(context.getString(R.string.loc_entry_name_label, position), Html.FROM_HTML_MODE_LEGACY));
+                }
+            } else {
+                labelText.setText(Html.fromHtml(context.getString(R.string.loc_entry_date_label, entry.getDateTakenFormatted()), Html.FROM_HTML_MODE_LEGACY));
+            }
 
-            itemView.setBackgroundColor(entry.isSelected() ? highlightCol : resetCol);
+            infoText.setText(entry.toString());
+            itemView.setBackgroundColor(entry.isSelected() ? highlightCol : defaultCol);
         }
     }
 }

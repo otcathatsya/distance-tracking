@@ -27,6 +27,7 @@ import java.util.List;
 import at.cath.adapters.LocationListAdapter;
 import at.cath.data.LocationEntry;
 import at.cath.databinding.HomeFragmentBinding;
+import at.cath.listeners.MultiSelectionHandler;
 
 public class HomeFragment extends Fragment {
 
@@ -59,8 +60,17 @@ public class HomeFragment extends Fragment {
         RecyclerView recyclerView = binding.locationListView;
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
-        listAdapter = new LocationListAdapter(requireContext(), this::displayDistanceBetween,
-                () -> binding.distanceDisplay.setText(""));
+        listAdapter = new LocationListAdapter(requireContext(), new MultiSelectionHandler.OnSelectRequiredAmountListener<LocationEntry>() {
+            @Override
+            public void onSelectRequiredAmount(List<LocationEntry> elements) {
+                displayDistanceBetween(elements.get(0), elements.get(1));
+            }
+        }, new MultiSelectionHandler.OnDeselect() {
+            @Override
+            public void onDeselect() {
+                binding.distanceDisplay.setText(getText(R.string.add_location_prompt));
+            }
+        });
 
         if (locationEntryStates != null)
             for (LocationEntry entry : locationEntryStates) {

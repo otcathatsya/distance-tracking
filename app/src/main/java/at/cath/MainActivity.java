@@ -30,13 +30,14 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
 
     private static final int REQUEST_SETTINGS_MODIFICATION = 37;
+    private ActivityMainBinding binding;
     private NavController navController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        ActivityMainBinding mainBinding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(mainBinding.getRoot());
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
         setSupportActionBar(findViewById(R.id.toolbar));
 
